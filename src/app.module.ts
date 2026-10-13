@@ -32,6 +32,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       username: process.env.DB_USER ?? "admin",
       password: process.env.DB_PASSWORD ?? "admin",
       database: process.env.DB_NAME ?? "database",
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       entities: [UserEntity, ProjectEntity, CategoryEntity, TagEntity],
       synchronize: false,
       migrations: [__dirname + "/migrations/*{.js,.ts}"],
