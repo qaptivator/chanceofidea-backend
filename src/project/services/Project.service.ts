@@ -12,7 +12,8 @@ import { TagService } from "../../tag/services/Tag.service";
 import { IUpdateProject } from "../../types/UpdateProject.interface";
 import { ProjectStatusEnum } from "../../enums/ProjectStatus.enum";
 import { UserService } from "../../user/services/User.service";
-import { ISearchProjects } from "../../types/FindFilteredProjects.interface";
+import { IFindFilteredProjects } from "../../types/FindFilteredProjects.interface";
+import { IProjectForceUpdate } from "../../types/ProjectForceUpdate.interface";
 import { OnEvent } from "@nestjs/event-emitter";
 import { TransferSessionService } from "../../transfer-session/services/TransferSession.service";
 
@@ -25,7 +26,7 @@ interface IProjectSerice {
   update(data: IUpdateProject): Promise<void>;
   delete(id: string): Promise<void>;
   publish(id: string): Promise<void>;
-  search(data: ISearchProjects): Promise<ProjectEntity[]>;
+  findFiltered(data: IFindFilteredProjects): Promise<ProjectEntity[]>;
   handleTransferFailed(transferSessionId: string): Promise<void>;
   handleTransferSuccess(transferSessionId: string): Promise<void>;
 }
@@ -147,7 +148,7 @@ export class ProjectService implements IProjectSerice {
     await this.repository.save(project);
   }
 
-  async search(data: ISearchProjects): Promise<ProjectEntity[]> {
+  async findFiltered(data: IFindFilteredProjects): Promise<ProjectEntity[]> {
     const categorySlugs = data.categorySlugs ?? [];
     const tagSlugs = data.tagSlugs ?? [];
 
@@ -200,17 +201,8 @@ export class ProjectService implements IProjectSerice {
       });
     }
 
-    const searchWords =
-      data.searchQuery?.trim().split(/\s+/).filter(Boolean) ?? [];
-
-    for (const [index, word] of searchWords.entries()) {
-      query.andWhere(`project.title ILIKE :searchWord${index}`, {
-        [`searchWord${index}`]: `%${word}%`,
-      });
-    }
-
     const projects = await query
-      .skip((Math.max(1, data.page) - 1) * 20)
+      .skip(data.page * 20)
       .take(20)
       .getMany();
 

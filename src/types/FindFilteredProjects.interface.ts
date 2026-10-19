@@ -1,6 +1,5 @@
-export interface ISearchProjects {
+export interface IFindFilteredProjects {
     categorySlugs: string[] | string;
     tagSlugs: string[] | string;
-    searchQuery?: string;
     page: number;
 }
