@@ -32,6 +32,10 @@ interface IProjectSerice {
 		failed: boolean
 	): Promise<void>
 	handleTransferSuccess(transferSessionId: string): Promise<void>
+	findByUser(
+		ownerId: string,
+		relations: FindOptionsRelations<ProjectEntity>
+	): Promise<ProjectEntity[]>
 }
 
 @Injectable()
@@ -244,5 +248,15 @@ export class ProjectService implements IProjectSerice {
 		project.status = ProjectStatusEnum.ADOPTED
 
 		await this.repository.save(project)
+	}
+
+	async findByUser(
+		ownerId: string,
+		relations: FindOptionsRelations<ProjectEntity>
+	): Promise<ProjectEntity[]> {
+		return this.repository.find({
+			where: { owner: { id: ownerId } },
+			relations,
+		})
 	}
 }
