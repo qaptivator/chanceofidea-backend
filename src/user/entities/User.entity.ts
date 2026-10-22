@@ -1,10 +1,12 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { ProjectEntity } from "../../project/entities/Project.entity";
 import { GithubAccessEntity } from "../../auth/entities/GithubAccess.entity";
@@ -27,13 +29,15 @@ export class UserEntity {
   @Column({ default: "" })
   bio: string;
 
-  @Column({ type: "timestamptz", update: false })
+  @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @JoinColumn()
   @OneToMany(() => ProjectEntity, (project) => project.owner, {
-    onDelete: "CASCADE",
-    cascade: true,
+    onDelete: "SET NULL",
   })
   projects: ProjectEntity[];
 

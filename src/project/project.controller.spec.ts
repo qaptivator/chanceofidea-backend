@@ -83,13 +83,41 @@ describe("ProjectController", () => {
 
   describe("get", () => {
     it("should find a project with its required relations", async () => {
-      const project = { id: "project-1", title: "My project" };
+      const project = {
+        id: "project-1",
+        title: "My project",
+        category: { id: "category-1", name: "Backend" },
+        createdAt: new Date(),
+        description: "A test project",
+        owner: {
+          id: "user-1",
+          avatarUrl: null,
+          bio: null,
+          createdAt: new Date(),
+          login: "test-user",
+        },
+        repositoryName: "my-repo",
+        status: "active",
+        tags: [],
+      };
+
       projectService.findById.mockResolvedValue(project);
 
-      await expect(controller.get({ id: "project-1" } as any)).resolves.toBe(
-        project,
+      await expect(controller.get({ id: "project-1" } as any)).resolves.toEqual(
+        {
+          id: project.id,
+          title: project.title,
+          category: project.category,
+          createdAt: project.createdAt,
+          description: project.description,
+          owner: project.owner,
+          repositoryName: project.repositoryName,
+          status: project.status,
+          tags: project.tags,
+        },
       );
 
+      expect(projectService.findById).toHaveBeenCalledTimes(1);
       expect(projectService.findById).toHaveBeenCalledWith("project-1", {
         applications: true,
         category: true,
@@ -117,6 +145,7 @@ describe("ProjectController", () => {
 
       await expect(controller.update(dto)).resolves.toBeUndefined();
 
+      expect(projectService.update).toHaveBeenCalledTimes(1);
       expect(projectService.update).toHaveBeenCalledWith(dto);
     });
 
@@ -136,6 +165,7 @@ describe("ProjectController", () => {
         controller.delete({ id: "project-1" } as any),
       ).resolves.toBeUndefined();
 
+      expect(projectService.delete).toHaveBeenCalledTimes(1);
       expect(projectService.delete).toHaveBeenCalledWith("project-1");
     });
 
@@ -155,6 +185,7 @@ describe("ProjectController", () => {
         controller.publish({ id: "project-1" } as any),
       ).resolves.toBeUndefined();
 
+      expect(projectService.publish).toHaveBeenCalledTimes(1);
       expect(projectService.publish).toHaveBeenCalledWith("project-1");
     });
 
@@ -184,6 +215,7 @@ describe("ProjectController", () => {
         projects,
       );
 
+      expect(projectService.search).toHaveBeenCalledTimes(1);
       expect(projectService.search).toHaveBeenCalledWith({
         ...dto,
         ...pageDto,

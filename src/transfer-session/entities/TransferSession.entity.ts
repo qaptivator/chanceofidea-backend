@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
@@ -15,11 +16,15 @@ export class TransferSessionEntity {
   id: string;
 
   @JoinColumn()
-  @OneToOne(() => ProjectEntity)
+  @OneToOne(() => ProjectEntity, {
+    onDelete: "SET NULL",
+  })
   project: ProjectEntity;
 
   @JoinColumn()
-  @OneToOne(() => UserEntity)
+  @OneToOne(() => UserEntity, {
+    onDelete: "SET NULL",
+  })
   applicant: UserEntity;
 
   @Column({
@@ -29,6 +34,6 @@ export class TransferSessionEntity {
   })
   status: TransferSessionStatusEnum;
 
-  @Column({ type: "timestamptz" })
+  @CreateDateColumn()
   createdAt: Date;
 }
