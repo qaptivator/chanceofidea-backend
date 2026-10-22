@@ -160,7 +160,6 @@ export class ProjectController {
 		await this.projectService.publish(dto.id)
 	}
 
-	@UseGuards(AuthGuard)
 	@Get('projects')
 	@ApiOperation({ summary: 'Search projects with pagination and filters' })
 	@ApiOkResponse({
@@ -178,9 +177,9 @@ export class ProjectController {
 		@Query() dto: SearchProjectsDto,
 		@Param() pageDto: SearchProjectsPageDto
 	) {
-		return await this.projectService.search({
+		return this.projectService.search({
 			...dto,
-			page,
+			...pageDto,
 		})
 	}
 }
