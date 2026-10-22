@@ -177,7 +177,7 @@ export class ProjectController {
 		@Query() dto: SearchProjectsDto,
 		@Param() pageDto: SearchProjectsPageDto
 	) {
-		return this.projectService.search({
+		return this.projectService.findFiltered({
 			...dto,
 			...pageDto,
 		})
