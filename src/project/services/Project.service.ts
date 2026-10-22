@@ -229,7 +229,7 @@ export class ProjectService implements IProjectSerice {
 		}
 
 		const projects = await query
-			.skip(data.page * 20)
+			.skip((data.page - 1) * 20)
 			.take(20)
 			.getMany()
 

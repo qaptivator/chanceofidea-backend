@@ -65,7 +65,6 @@ export class ProjectController {
 		})
 	}
 
-	@UseGuards(AuthGuard)
 	@Get()
 	@ApiOperation({ summary: 'Get a project by ID' })
 	@ApiOkResponse({
@@ -160,7 +159,7 @@ export class ProjectController {
 		await this.projectService.publish(dto.id)
 	}
 
-	@Get('projects')
+	@Get('projects/:page')
 	@ApiOperation({ summary: 'Search projects with pagination and filters' })
 	@ApiOkResponse({
 		description: 'Projects matching the search criteria',

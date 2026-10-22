@@ -17,7 +17,6 @@ import { CategoryDto } from "../dto/Category.dto";
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
-  @UseGuards(AuthGuard)
   @Get()
   @ApiOperation({ summary: "Fetch all categories" })
   @ApiOkResponse({

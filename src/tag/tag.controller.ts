@@ -17,7 +17,6 @@ import { TagDto } from "../dto/Tag.dto";
 export class TagController {
   constructor(private readonly tagService: TagService) {}
 
-  @UseGuards(AuthGuard)
   @Get()
   @ApiOperation({ summary: "Fetch all tags" })
   @ApiOkResponse({
