@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -23,8 +24,8 @@ interface IApplicationService {
     id: string,
     relations?: FindOptionsRelations<ApplicationEntity>,
   ): Promise<ApplicationEntity>;
-  accept(id: string): Promise<void>;
-  reject(id: string, reason?: string): Promise<void>;
+  accept(id: string, userId: string): Promise<void>;
+  reject(id: string, userId: string, reason?: string): Promise<void>;
   findIncoming(userId: string): Promise<ApplicationEntity[]>;
   findOutcoming(userId: string): Promise<ApplicationEntity[]>;
 }
@@ -42,11 +43,14 @@ export class ApplicationService implements IApplicationService {
 
   async create(data: ICreateApplication, userId: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      // Serialize application creation for this project.
-      await manager.getRepository(ProjectEntity).findOneOrFail({
+      // serialize application creation for this project
+      const project = await manager.getRepository(ProjectEntity).findOneOrFail({
         where: { id: data.projectId },
-        lock: { mode: "pessimistic_write" }, // lock the row
+        lock: { mode: "pessimistic_write" },
       });
+
+      if (project.status !== ProjectStatusEnum.PUBLISHED)
+        throw new BadRequestException("Project is not open for applications");
 
       const applicationRepository = manager.getRepository(ApplicationEntity);
       const userRepository = manager.getRepository(UserEntity);
@@ -57,7 +61,7 @@ export class ApplicationService implements IApplicationService {
       });
       if (!user) throw new NotFoundException("User not found");
 
-      if (user.projects.map((project) => project.id).includes(data.projectId))
+      if (user.projects.map((p) => p.id).includes(data.projectId))
         throw new BadRequestException(
           "User cannot submit an application to himself",
         );
@@ -113,8 +117,26 @@ export class ApplicationService implements IApplicationService {
     return application;
   }
 
-  async reject(id: string, reason?: string): Promise<void> {
-    const application = await this.findById(id);
+  // loads the application and checks that userId owns its project
+  private async findOwnedPending(
+    id: string,
+    userId: string,
+  ): Promise<ApplicationEntity> {
+    const application = await this.findById(id, {
+      project: { owner: true },
+    });
+
+    if (application.project.owner.id !== userId)
+      throw new ForbiddenException("Only the project owner can decide");
+
+    if (application.status !== ApplicationStatusEnum.PENDING)
+      throw new ConflictException("Application is already decided");
+
+    return application;
+  }
+
+  async reject(id: string, userId: string, reason?: string): Promise<void> {
+    const application = await this.findOwnedPending(id, userId);
 
     application.status = ApplicationStatusEnum.REJECTED;
     if (reason) application.rejectReason = reason;
@@ -122,7 +144,9 @@ export class ApplicationService implements IApplicationService {
     await this.repository.save(application);
   }
 
-  async accept(id: string): Promise<void> {
+  async accept(id: string, userId: string): Promise<void> {
+    await this.findOwnedPending(id, userId);
+
     const transferSessionId = await this.dataSource.transaction(
       async (manager) => {
         const repository = manager.getRepository(ApplicationEntity);
@@ -143,34 +167,30 @@ export class ApplicationService implements IApplicationService {
 
         if (!application) throw new NotFoundException("Application not found");
 
+        const project = application.project;
+        if (project.status === ProjectStatusEnum.TRANSFERRING)
+          throw new BadRequestException("Project is already being transfered");
+
         application.status = ApplicationStatusEnum.ACCEPTED;
         await repository.save(application);
 
-        const project = application.project;
-        if (project.status == ProjectStatusEnum.TRANSFERRING)
-          throw new BadRequestException("Project is already being transfered");
-
         project.status = ProjectStatusEnum.TRANSFERRING;
-
         await projectRepository.save(project);
 
-        const transferSessionRepository = manager.getRepository(
-          TransferSessionEntity,
-        );
-
-        const transferSession = await transferSessionRepository.save({
-          applicant: application.applicant,
-          project,
-          createdAt: new Date(),
-        });
+        const transferSession = await manager
+          .getRepository(TransferSessionEntity)
+          .save({
+            applicant: application.applicant,
+            project,
+            createdAt: new Date(),
+          });
 
         return transferSession.id;
       },
     );
 
-    this.eventEmitter.emit("application.accepted", {
-      transferSessionId,
-    });
+    // the listeners expect the id itself, not an object
+    this.eventEmitter.emit("application.accepted", transferSessionId);
   }
 
   async findIncoming(userId: string): Promise<ApplicationEntity[]> {
@@ -183,7 +203,7 @@ export class ApplicationService implements IApplicationService {
 
   async findOutcoming(userId: string): Promise<ApplicationEntity[]> {
     const user = await this.userService.findById(userId, {
-      applications: true,
+      applications: { project: { owner: true } },
     });
 
     return user.applications;

@@ -24,7 +24,6 @@ import { ApplicationService } from "./services/Application.service";
 import { AuthGuard } from "../auth/guards/Auth.guard";
 import { type IRequestWithRefresh } from "../types/RequestWithRefresh.interface";
 import { CreateApplicationDto } from "../dto/CreateApplication.dto";
-import { ProjectGuard } from "../project/guards/Project.guard";
 import { AcceptRejectApplicationDto } from "../dto/AcceptRejectApplication.dto";
 import { RejectApplicationDto } from "../dto/RejectApplication.dto";
 import { ApplicationDto } from "../dto/Application.dto";
@@ -69,7 +68,7 @@ export class ApplicationController {
   }
 
   @Post("accept")
-  @UseGuards(AuthGuard, ProjectGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: "Accept a project application" })
   @ApiOkResponse({
     description: "Application accepted successfully",
@@ -86,12 +85,15 @@ export class ApplicationController {
   @ApiConflictResponse({
     description: "One of the applications is already accepted",
   })
-  async accept(@Query() dto: AcceptRejectApplicationDto): Promise<void> {
-    await this.applicationService.accept(dto.applicationId);
+  async accept(
+    @Req() req: IRequestWithRefresh,
+    @Query() dto: AcceptRejectApplicationDto,
+  ): Promise<void> {
+    await this.applicationService.accept(dto.applicationId, req.user.id);
   }
 
   @Post("reject")
-  @UseGuards(AuthGuard, ProjectGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: "Reject a project application" })
   @ApiOkResponse({
     description: "Application rejected successfully",
@@ -103,11 +105,13 @@ export class ApplicationController {
     description: "Application not found",
   })
   async reject(
+    @Req() req: IRequestWithRefresh,
     @Query() queryDto: AcceptRejectApplicationDto,
     @Body() dto: RejectApplicationDto,
   ): Promise<void> {
     await this.applicationService.reject(
       queryDto.applicationId,
+      req.user.id,
       dto.rejectReason,
     );
   }

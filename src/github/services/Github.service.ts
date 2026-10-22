@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { Octokit } from "octokit";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 
@@ -18,6 +18,8 @@ interface IGithubService {
 
 @Injectable()
 export class GithubService implements IGithubService {
+  private readonly logger = new Logger(GithubService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly githubAccessService: GithubAccessService,
@@ -71,14 +73,10 @@ export class GithubService implements IGithubService {
         new_owner: applicant.login,
       });
 
-      transferSession.project.status = ProjectStatusEnum.TRANSFERRING;
     } catch (error) {
-      this.eventEmitter.emit("transfer.termiated", {
-        transferSessionId,
-        failed: true,
-      });
-
-      throw error;
+      // throwing here would be an unhandled rejection inside the event emitter
+      this.logger.error(`github transfer request failed: ${error}`);
+      this.eventEmitter.emit("transfer.terminated", transferSessionId, true);
     }
   }
 
@@ -170,16 +168,10 @@ This document was generated automatically upon confirmation of the successful re
         content: Buffer.from(text, "utf8").toString("base64"),
       });
     } catch (error) {
-      this.eventEmitter.emit("transfer.termiated", {
-        transferSessionId,
-        failed: true,
-      });
-
-      return;
+      // the repo has already moved on github, so the record is best-effort
+      this.logger.warn(`transfer record commit failed: ${error}`);
     }
 
-    this.eventEmitter.emit("transfer.finished", {
-      transferSessionId,
-    });
+    this.eventEmitter.emit("transfer.finished", transferSessionId);
   }
 }

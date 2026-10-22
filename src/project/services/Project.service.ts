@@ -261,11 +261,13 @@ export class ProjectService implements IProjectSerice {
 			transferSessionId,
 			{
 				project: true,
+				applicant: true,
 			}
 		)
 		const project = transferSession.project
 
 		project.status = ProjectStatusEnum.ADOPTED
+		project.owner = transferSession.applicant
 
 		await this.repository.save(project)
 	}

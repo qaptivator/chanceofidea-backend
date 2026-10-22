@@ -98,9 +98,7 @@ export class TransferSessionService implements ITransferSessionService {
         "You have not yet accepted the repository transfer",
       );
 
-    this.eventEmitter.emit("transfer.success", {
-      transferSessionId: transferSession.id,
-    });
+    this.eventEmitter.emit("transfer.success", transferSession.id);
   }
 
   async iDontWantTheRepo(userId: string): Promise<void> {
@@ -122,9 +120,6 @@ export class TransferSessionService implements ITransferSessionService {
         "You have actually accepted the repository transfer",
       );
 
-    this.eventEmitter.emit("transfer.terminated", {
-      transferSessionId: transferSession.id,
-      failed: false,
-    });
+    this.eventEmitter.emit("transfer.terminated", transferSession.id, false);
   }
 }
